@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# S99kernelmodules - Load kernel modules during system startup
+#
+
+# List of kernel modules to load
+MODULES="spi_bcm2835 spidev"
+
+# Load each module using modprobe
+load_modules() {
+    for module in $MODULES; do
+        modprobe $module
+    done
+}
+
+# Unload each module using modprobe
+unload_modules() {
+    for module in $MODULES; do
+        modprobe -r $module
+    done
+}
+
+case "$1" in
+    start)
+        load_modules
+        ;;
+    stop)
+        unload_modules
+        ;;
+    restart)
+        unload_modules
+        load_modules
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
