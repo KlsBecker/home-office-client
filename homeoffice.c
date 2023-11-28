@@ -275,7 +275,7 @@ static void spi_read_all()
 {
     spi_write(CMD_READ_ALL);
     spi_read(&gs_homeoffice_data, sizeof(homeoffice_data));
-    printf("Voltage: %05.2f mV\n", gs_homeoffice_data.voltage);
+    printf("Voltage: %05.2f V\n", gs_homeoffice_data.voltage);
     printf("Current: %05.2f mA\n", gs_homeoffice_data.current *1000);
     printf("Power: %05.2f mW\n", gs_homeoffice_data.power * 1000);
     printf("Relay: %s\n", gs_homeoffice_data.relay ? "ON" : "OFF");
@@ -317,15 +317,15 @@ int main(int argc, char **argv)
         system("clear");
 
         memset(&gs_homeoffice_data, 0, sizeof(gs_homeoffice_data));
-
+        
         printf("Choices:\n");
         printf(" 1: Read Power\n");
         printf(" 2: Read Current\n");
         printf(" 3: Read Voltage\n");
         printf(" 4: Read Relay\n");
         printf(" 5: Read All\n");
-        printf(" 6: Set Relay On\n");
-        printf(" 7: Set Relay Off\n");
+        printf(" 6: Set Relay ON\n");
+        printf(" 7: Set Relay OFF\n");
         printf(" 8: Exit\n\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
