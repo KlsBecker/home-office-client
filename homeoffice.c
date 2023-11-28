@@ -24,6 +24,12 @@
  * PRIVATE DEFINES *
  * *****************/
 
+#ifdef __DEBUG__
+	#define printd(fmt, args...) { printf("%s:%d::%s: " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##args); fflush(stdout); }
+#else
+	#define printd(args...)
+#endif
+
 #define SPI_DEVICE "/dev/spidev0.0" /* SPI device path */
 #define SPI_MODE SPI_MODE_0         /* SPI communication mode */
 #define SPI_BITS_PER_WORD 8         /* SPI bits per word */
@@ -163,13 +169,13 @@ static void spi_transfer(void *tx_buf, void *rx_buf, size_t len)
         memcpy(sendbuf, tx_buf, len);
         data = sendbuf[0];
 
-        printf("==== SENDING ====\n");
-        printf(" CMD: %s (%d)\n", get_cmd_str(data), data);
+        printd("==== SENDING ====\n");
+        printd(" CMD: %s (%d)\n", get_cmd_str(data), data);
         for(int i = 1; i < len; i++)
         {   
             data = sendbuf[i];
             if(data != 0){
-                printf(" %02d: %d\n", i, data);
+                printd(" %02d: %d\n", i, data);
             }
         }
     }
@@ -191,16 +197,16 @@ static void spi_transfer(void *tx_buf, void *rx_buf, size_t len)
     if (rx_buf != NULL)
     {
         data = recvbuf[2];
-        printf("=== RECEIVING ===\n");
-        printf(" CMD: %s (%d)\n", get_cmd_str(data), data);
+        printd("=== RECEIVING ===\n");
+        printd(" CMD: %s (%d)\n", get_cmd_str(data), data);
         for(int i = 3; i < 20; i++)
         {   
             data = recvbuf[i];
             if(data != 0){
-                printf(" %02d: %d\n", i, data);
+                printd(" %02d: %d\n", i, data);
             }
         }
-        printf("=================\n");
+        printd("=================\n");
 
         memcpy(rx_buf,&recvbuf[3], len);
     }
@@ -246,7 +252,7 @@ static void spi_read_current()
 {
     spi_write(CMD_READ_CURRENT);
     spi_read(&gs_homeoffice_data.current, sizeof(float));
-    printf("Current: %05.2f A\n", gs_homeoffice_data.current * 1000);
+    printf("Current: %05.2f mA\n", gs_homeoffice_data.current * 1000);
 }
 
 /**
@@ -258,7 +264,7 @@ static void spi_read_power()
 {
     spi_write(CMD_READ_POWER);
     spi_read(&gs_homeoffice_data.power, sizeof(float));
-    printf("Power: %05.2f W\n", gs_homeoffice_data.power * 1000);
+    printf("Power: %05.2f mW\n", gs_homeoffice_data.power * 1000);
 }
 
 /**
@@ -269,9 +275,9 @@ static void spi_read_all()
 {
     spi_write(CMD_READ_ALL);
     spi_read(&gs_homeoffice_data, sizeof(homeoffice_data));
-    printf("Voltage: %05.2f V\n", gs_homeoffice_data.voltage);
-    printf("Current: %05.2f A\n", gs_homeoffice_data.current *1000);
-    printf("Power: %05.2f W\n", gs_homeoffice_data.power * 1000);
+    printf("Voltage: %05.2f mV\n", gs_homeoffice_data.voltage);
+    printf("Current: %05.2f mA\n", gs_homeoffice_data.current *1000);
+    printf("Power: %05.2f mW\n", gs_homeoffice_data.power * 1000);
     printf("Relay: %s\n", gs_homeoffice_data.relay ? "ON" : "OFF");
 }
 
@@ -303,10 +309,16 @@ static void spi_set_relay(uint8_t state)
 
 int main(int argc, char **argv)
 {
-    if(argc > 2)
+    spi_init();
+
+    int choice = 0, c;
+    while (choice != 8)
     {
-        printf("Usage: %s <choice>\n", argv[0]);
-        printf("Choices:\n");   
+        system("clear");
+
+        memset(&gs_homeoffice_data, 0, sizeof(gs_homeoffice_data));
+
+        printf("Choices:\n");
         printf(" 1: Read Power\n");
         printf(" 2: Read Current\n");
         printf(" 3: Read Voltage\n");
@@ -314,41 +326,49 @@ int main(int argc, char **argv)
         printf(" 5: Read All\n");
         printf(" 6: Set Relay On\n");
         printf(" 7: Set Relay Off\n");
-        return 1;
-    }
+        printf(" 8: Exit\n\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        printf("\n");
 
-    int choice = argc == 2 ? atoi(argv[1]) : 5;
+        switch (choice)
+        {
+            case 1:
+                spi_read_power();
+                break;
+            case 2:
+                spi_read_current();
+                break;
+            case 3:
+                spi_read_voltage();
+                break;
+            case 4:
+                spi_read_relay();
+                break;
+            case 5:
+                spi_read_all();
+                break;
+            case 6:
+                spi_set_relay(1);
+                break;
+            case 7:
+                spi_set_relay(0);
+                break;
+            case 8:
+                printf("Exiting...\n");
+                break;
+            default:
+                printf("Invalid choice\n");
+                break;
+        }
 
-    spi_init();
+        /* Flush the STDIN */
+        do c = getchar(); while (c != '\n' && c != EOF);
 
-    memset(&gs_homeoffice_data, 0, sizeof(gs_homeoffice_data));
+        /* Pause the execution of the code */
+        printf("\nPress [ENTER] to continue....");
+        c = getchar();
 
-    switch (choice)
-    {
-        case 1:
-            spi_read_voltage();
-            break;
-        case 2:
-            spi_read_current();
-            break;
-        case 3:
-            spi_read_power();
-            break;
-        case 4:
-            spi_read_relay();
-            break;
-        case 5:
-            spi_read_all();
-            break;
-        case 6:
-            spi_set_relay(1);
-            break;
-        case 7:
-            spi_set_relay(0);
-            break;
-        default:
-            printf("Invalid choice\n");
-            break;
     }
 
     close(gs_spi_fd);
